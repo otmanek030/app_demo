@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.demo_app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 500
+        versionName = "5.0.0"
 
         // Java compile options
         javaCompileOptions {

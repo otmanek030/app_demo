@@ -16,41 +16,50 @@ class UpdateService {
   static const _channel = MethodChannel('app_channel');
 
   Future<Map<String, dynamic>> checkForUpdates() async {
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      final versionCode = int.parse(packageInfo.buildNumber);
-      
-      final uri = Uri.parse(AppConstants.checkUpdateEndpoint).replace(
-        queryParameters: {
-          'package_name': AppConstants.packageName,
-          'version_code': versionCode.toString(),
-        },
-      );
-      
-      debugPrint('Checking for updates at: $uri');
-      
-      final response = await http.get(
-        uri,
-        headers: {'Accept': 'application/json'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['update_available'] == true && data['version'] != null) {
+  try {
+    final packageInfo = await PackageInfo.fromPlatform();
+    final currentVersionCode = int.parse(packageInfo.buildNumber);
+    
+    final uri = Uri.parse(AppConstants.checkUpdateEndpoint).replace(
+      queryParameters: {
+        'package_name': AppConstants.packageName,
+        'version_code': currentVersionCode.toString(),
+      },
+    );
+    
+    debugPrint('Checking for updates at: $uri');
+    
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['update_available'] == true && data['version'] != null) {
+        final availableVersion = VersionModel.fromJson(data['version']);
+        
+        // ADD DEBUG PRINTS HERE
+        debugPrint('Current version code: $currentVersionCode');
+        debugPrint('Available version code: ${availableVersion.versionCode}');
+        
+        // Only show update if available version is newer than current version
+        if (availableVersion.versionCode > currentVersionCode) {
           return {
             'update_available': true,
-            'version': VersionModel.fromJson(data['version']),
+            'version': availableVersion,
           };
         }
-        return {'update_available': false};
-      } else {
-        throw Exception('Failed to check for updates: ${response.statusCode}');
       }
-    } catch (e) {
-      debugPrint('Error checking for updates: $e');
       return {'update_available': false};
+    } else {
+      throw Exception('Failed to check for updates: ${response.statusCode}');
     }
+  } catch (e) {
+    debugPrint('Error checking for updates: $e');
+    return {'update_available': false};
   }
+}
   
   Future<bool> shouldShowUpdate(Map<String, dynamic> updateInfo) async {
     if (!updateInfo['update_available']) return false;
@@ -140,13 +149,13 @@ class UpdateService {
 
   Future<void> _installApk(String apkPath) async {
   try {
-    // Change this line
     await _channel.invokeMethod('installApk', {'filePath': apkPath});
-    // Instead of:
-    // await _channel.invokeMethod('installApk', apkPath);
+    // Clear postponement data after successful install
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('postponed_version');
+    await prefs.remove('postponed_until');
   } on PlatformException catch (e) {
     print('Install error: ${e.message}');
-    // Fallback to intent
     await _launchApkInstaller(apkPath);
   }
 }
