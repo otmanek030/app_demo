@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'models/version_model.dart';
 import 'services/update_service.dart';
@@ -36,28 +35,28 @@ class _HomePageState extends State<HomePage> {
   final UpdateService _updateService = UpdateService();
   bool _checkingForUpdates = false;
   String? _status;
-  
-  @override
-  void initState() {
-    super.initState();
+
+@override
+void initState() {
+  super.initState();
     // Vérifier les mises à jour au démarrage
     Future.delayed(const Duration(seconds: 1), () {
       _checkForUpdates(silent: true);
     });
   }
   
-  Future<void> _checkForUpdates({bool silent = false}) async {
+    Future<void> _checkForUpdates({bool silent = false}) async {
     if (_checkingForUpdates) return;
-    
-    setState(() {
-      _checkingForUpdates = true;
-      if (!silent) _status = 'Vérification des mises à jour...';
-    });
-    
-    try {
-      final updateInfo = await _updateService.checkForUpdates();
-      final shouldShow = await _updateService.shouldShowUpdate(updateInfo);
       
+      setState(() {
+        _checkingForUpdates = true;
+      if (!silent) _status = 'Vérification des mises à jour...';
+      });
+
+      try {
+        final updateInfo = await _updateService.checkForUpdates();
+        final shouldShow = await _updateService.shouldShowUpdate(updateInfo);
+        
       if (shouldShow) {
         _showUpdateDialog(updateInfo['version']);
       } else if (!silent) {
@@ -91,7 +90,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
-  
+
   void _showUpdateDialog(VersionModel version) {
     if (!mounted) return;
     
@@ -110,12 +109,12 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('my app '),
+        title: const Text('my app'),
       ),
       body: Center(
         child: Column(
@@ -133,7 +132,7 @@ class _HomePageState extends State<HomePage> {
             ],
             ElevatedButton(
               onPressed: _checkingForUpdates ? null : () => _checkForUpdates(),
-              child: _checkingForUpdates 
+              child: _checkingForUpdates
                 ? const CircularProgressIndicator(color: Colors.white)
                 : const Text('Vérifier'),
             ),

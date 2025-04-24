@@ -43,7 +43,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       _error = null;
       _progress = 0;
     });
-
+    
     try {
       await _updateService.downloadAndInstallUpdate(
         widget.version,
@@ -57,7 +57,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       }
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final isMandatory = widget.version.updateType == 'mandatory';
@@ -65,24 +65,24 @@ class _UpdateDialogState extends State<UpdateDialog> {
     return AlertDialog(
       title: const Text('Mise à jour disponible'),
       content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Version ${widget.version.versionName}', 
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Version ${widget.version.versionName}', 
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          if (widget.version.releaseNotes.isNotEmpty) ...[
+            if (widget.version.releaseNotes.isNotEmpty) ...[
             const Text('Notes de version:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(widget.version.releaseNotes),
-            const SizedBox(height: 16),
-          ],
-          if (_downloading) ...[
+              const SizedBox(height: 4),
+              Text(widget.version.releaseNotes),
+              const SizedBox(height: 16),
+            ],
+            if (_downloading) ...[
             LinearProgressIndicator(value: _progress),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
             Text('${(_progress * 100).toStringAsFixed(0)}% téléchargé'),
             const SizedBox(height: 16),
-          ],
+            ],
           if (_error != null) ...[
             Text(_error!, 
               style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -90,7 +90,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         ],
       ),
       actions: [
-        if (!isMandatory)
+        if (!isMandatory) 
           TextButton(
             onPressed: _downloading ? null : widget.onCancel,
             child: const Text('Ignorer'),

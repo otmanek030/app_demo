@@ -17,7 +17,8 @@
         android:label="demo_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:usesCleartextTraffic="true">
 
         <!-- This meta-data should be directly under application -->
         <meta-data
@@ -29,13 +30,12 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <!-- This meta-data is what connects to your provider_paths.xml -->
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-        
-        <activity
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"

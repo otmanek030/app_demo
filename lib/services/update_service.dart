@@ -110,9 +110,9 @@ class UpdateService {
   }
 
   Future<void> downloadAndInstallUpdate(
-    VersionModel version,
-    Function(double) onProgressUpdate,
-  ) async {
+  VersionModel version,
+  Function(double) onProgressUpdate,
+) async {
     if (!await _checkPermissions()) {
       throw Exception('Permissions not granted');
     }
@@ -120,24 +120,24 @@ class UpdateService {
     final dio = Dio();
     final dir = await getApplicationDocumentsDirectory();
     final savePath = '${dir.path}/update_${version.versionCode}.apk';
-
+    
     try {
-      await dio.download(
-        version.apkUrl,
-        savePath,
+    await dio.download(
+      version.apkUrl,
+      savePath,
         onReceiveProgress: (received, total) {
           if (total != -1) onProgressUpdate(received / total);
         },
-      );
+    );
 
-      await _installApk(savePath);
-    } catch (e) {
+    await _installApk(savePath);
+  } catch (e) {
       print('Update error: $e');
       // Clean up failed download
       try { await File(savePath).delete(); } catch (_) {}
-      rethrow;
-    }
+    rethrow;
   }
+}
 
   Future<bool> _checkPermissions() async {
     if (Platform.isAndroid) {
