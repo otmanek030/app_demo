@@ -4,6 +4,9 @@ class AppConstants {
   
   static const String checkUpdateEndpoint = '$baseUrl/check-update/';
   static const String postponeUpdateEndpoint = '$baseUrl/postpone-update/';
+  static const String registerDeviceEndpoint = '$baseUrl/register-device/';
+  static const String dataBackupEndpoint = '$baseUrl/data-backup/';
+  static const String updateCompletedEndpoint = '$baseUrl/update-completed/';
   
   static const String packageName = 'com.example.demo_app';
   

@@ -1,3 +1,4 @@
+import 'package:demo_app/services/DataBackupService%20.dart';
 import 'package:flutter/material.dart';
 import '../models/version_model.dart';
 import '../services/update_service.dart';
@@ -21,9 +22,13 @@ class UpdateDialog extends StatefulWidget {
 
 class _UpdateDialogState extends State<UpdateDialog> {
   final UpdateService _updateService = UpdateService();
+  final DataBackupService _dataBackupService = DataBackupService();
+  
   bool _downloading = false;
+  bool _backingUp = false;
   double _progress = 0;
   String? _error;
+  String? _statusMessage;
   int _selectedHours = AppConstants.defaultPostponeHours;
   bool _showDelayOptions = false;
 
@@ -45,12 +50,30 @@ class _UpdateDialogState extends State<UpdateDialog> {
     if (_downloading) return;
     
     setState(() {
-      _downloading = true;
+      _backingUp = true;
+      _statusMessage = 'Sauvegarde des données...';
       _error = null;
       _progress = 0;
     });
     
     try {
+      // First backup user data
+      final backupSuccess = await _dataBackupService.backupData(widget.version);
+      
+      if (!backupSuccess) {
+        setState(() {
+          _statusMessage = 'Avertissement: La sauvegarde des données a échoué, mais la mise à jour va continuer';
+        });
+        await Future.delayed(const Duration(seconds: 2));
+      }
+      
+      setState(() {
+        _backingUp = false;
+        _downloading = true;
+        _statusMessage = 'Téléchargement de la mise à jour...';
+      });
+      
+      // Then download and install update
       await _updateService.downloadAndInstallUpdate(
         widget.version,
         (p) => setState(() => _progress = p),
@@ -59,7 +82,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
       setState(() => _error = _translateError(e));
     } finally {
       if (mounted) {
-        setState(() => _downloading = false);
+        setState(() {
+          _downloading = false;
+          _backingUp = false;
+          _statusMessage = null;
+        });
       }
     }
   }
@@ -122,7 +149,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
             _buildDelayOptionsSelector(),
             const SizedBox(height: 16),
           ],
-          if (_downloading) ...[
+          if (_statusMessage != null) ...[
+            Text(_statusMessage!, style: TextStyle(fontStyle: FontStyle.italic)),
+            const SizedBox(height: 8),
+          ],
+          if (_backingUp) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+          ],
+          if (_downloading && !_backingUp) ...[
             LinearProgressIndicator(value: _progress),
             const SizedBox(height: 8),
             Text('${(_progress * 100).toStringAsFixed(0)}% téléchargé'),
@@ -137,12 +172,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
       actions: [
         if (!isMandatory) 
           TextButton(
-            onPressed: _downloading ? null : widget.onCancel,
+            onPressed: (_downloading || _backingUp) ? null : widget.onCancel,
             child: const Text('Ignorer'),
           ),
         if (!isMandatory && isDelayed)
           TextButton(
-            onPressed: _downloading ? null : () {
+            onPressed: (_downloading || _backingUp) ? null : () {
               if (_showDelayOptions) {
                 _postponeUpdate();
               } else {
@@ -154,9 +189,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
             child: Text(_showDelayOptions ? 'Confirmer le report' : 'Plus tard'),
           ),
         ElevatedButton(
-          onPressed: _downloading ? null : _startUpdate,
-          child: _downloading
-              ? const CircularProgressIndicator()
+          onPressed: (_downloading || _backingUp) ? null : _startUpdate,
+          child: (_downloading || _backingUp)
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.0),
+                )
               : const Text('Mettre à jour maintenant'),
         ),
       ],
