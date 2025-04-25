@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/version_model.dart';
 import '../services/update_service.dart';
+import '../utils/constants.dart';
 
 class UpdateDialog extends StatefulWidget {
   final VersionModel version;
@@ -23,6 +24,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
   bool _downloading = false;
   double _progress = 0;
   String? _error;
+  int _selectedHours = AppConstants.defaultPostponeHours;
+  bool _showDelayOptions = false;
+
+  // Delay options for the user to choose from
+  final List<int> _delayOptions = [6, 12, 24, 48];
 
   String _translateError(dynamic error) {
     final message = error.toString();
@@ -58,31 +64,70 @@ class _UpdateDialogState extends State<UpdateDialog> {
     }
   }
   
+  Future<void> _postponeUpdate() async {
+    setState(() {
+      _downloading = true;
+    });
+    
+    try {
+      final success = await _updateService.postponeUpdate(
+        widget.version,
+        hours: _selectedHours,
+      );
+      
+      if (success) {
+        widget.onPostpone();
+      } else {
+        setState(() => _error = 'Échec du report de la mise à jour');
+      }
+    } catch (e) {
+      setState(() => _error = _translateError(e));
+    } finally {
+      if (mounted) {
+        setState(() => _downloading = false);
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     final isMandatory = widget.version.updateType == 'mandatory';
+    final isDelayed = widget.version.updateType == 'delayed';
     
     return AlertDialog(
       title: const Text('Mise à jour disponible'),
       content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Version ${widget.version.versionName}', 
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Version ${widget.version.versionName}', 
+            style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-            if (widget.version.releaseNotes.isNotEmpty) ...[
+          if (widget.version.releaseNotes.isNotEmpty) ...[
             const Text('Notes de version:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(widget.version.releaseNotes),
-              const SizedBox(height: 16),
-            ],
-            if (_downloading) ...[
+            const SizedBox(height: 4),
+            Text(widget.version.releaseNotes),
+            const SizedBox(height: 16),
+          ],
+          if (isDelayed && widget.version.isGracePeriodActive) ...[
+            Text(
+              'Cette mise à jour deviendra obligatoire dans ${widget.version.remainingHours.toStringAsFixed(1)} heures.',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_showDelayOptions && isDelayed) ...[
+            const Text('Reporter la mise à jour de:'),
+            const SizedBox(height: 8),
+            _buildDelayOptionsSelector(),
+            const SizedBox(height: 16),
+          ],
+          if (_downloading) ...[
             LinearProgressIndicator(value: _progress),
-              const SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text('${(_progress * 100).toStringAsFixed(0)}% téléchargé'),
             const SizedBox(height: 16),
-            ],
+          ],
           if (_error != null) ...[
             Text(_error!, 
               style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -95,10 +140,18 @@ class _UpdateDialogState extends State<UpdateDialog> {
             onPressed: _downloading ? null : widget.onCancel,
             child: const Text('Ignorer'),
           ),
-        if (!isMandatory && widget.version.updateType == 'delayed')
+        if (!isMandatory && isDelayed)
           TextButton(
-            onPressed: _downloading ? null : widget.onPostpone,
-            child: const Text('Plus tard'),
+            onPressed: _downloading ? null : () {
+              if (_showDelayOptions) {
+                _postponeUpdate();
+              } else {
+                setState(() {
+                  _showDelayOptions = true;
+                });
+              }
+            },
+            child: Text(_showDelayOptions ? 'Confirmer le report' : 'Plus tard'),
           ),
         ElevatedButton(
           onPressed: _downloading ? null : _startUpdate,
@@ -107,6 +160,30 @@ class _UpdateDialogState extends State<UpdateDialog> {
               : const Text('Mettre à jour maintenant'),
         ),
       ],
+    );
+  }
+  
+  Widget _buildDelayOptionsSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: _delayOptions.map((hours) {
+        // Don't show options that exceed remaining grace period
+        if (widget.version.remainingHours > 0 && hours > widget.version.remainingHours) {
+          return const SizedBox.shrink();
+        }
+        
+        return ChoiceChip(
+          label: Text('$hours h'),
+          selected: _selectedHours == hours,
+          onSelected: (bool selected) {
+            if (selected) {
+              setState(() {
+                _selectedHours = hours;
+              });
+            }
+          },
+        );
+      }).toList(),
     );
   }
 }
